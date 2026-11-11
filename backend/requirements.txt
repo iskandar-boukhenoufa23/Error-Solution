@@ -4,3 +4,11 @@ uvicorn
 python-dotenv
 faiss-cpu
 ijson
+httpx
+python-jose[cryptography]
+pydantic-settings
+sentence-transformers
+
+# LangChain + Groq
+langchain
+langchain-groq

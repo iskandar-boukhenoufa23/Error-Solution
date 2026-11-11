@@ -1,9 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.middlewares.auth_middleware import get_current_user
-# from app.utils.title_generator import generate_title
 from app.schemas.message import MessageResponse, MessageCreate
 from app.db.database import supabase
+from app.services.error_rag import ask_error_assistant
 import json
+from starlette.concurrency import run_in_threadpool
 
 
 router = APIRouter()
@@ -11,58 +12,74 @@ router = APIRouter()
 @router.post("/message/create", response_model=MessageResponse)
 async def create_message(data: MessageCreate, user: dict = Depends(get_current_user)):
 	try:
-		message = data.message
+		message = data.message.strip()
+		if not message:
+			raise HTTPException(status_code=422, detail="Message cannot be empty")
+
 		chat_id = data.chat_id
-		if chat_id is None:
-			user_id = user["id"]
+		if chat_id is not None:
 			chat_response = (
-				supabase.table("chat").insert({
-				"user_id": user_id,
-				"title": "message"   # generate_title(message)
-				}).execute()
+				supabase.table("chat")
+				.select("id")
+				.eq("id", chat_id)
+				.eq("user_id", user["id"])
+				.maybe_single()
+				.execute()
+			)
+			if chat_response.data is None:
+				raise HTTPException(status_code=404, detail="Conversation not found")
+
+		try:
+			ai_result = await run_in_threadpool(
+				ask_error_assistant,
+				message,
 			)
 
-			chat = chat_response.data[0]
-			chat_id = chat["id"]
+			ai_response = ai_result["answer"]
+			sources = ai_result["sources"]
+		except (FileNotFoundError, ImportError, OSError):
+			raise HTTPException(
+				status_code=503,
+				detail="The error knowledge base is unavailable",
+			) from None
 
-		ai_response = [{
-			"error": message,
-			"fix": "salam alaykoum",
-			"score": 0.5
-		}]
+		ai_response = [
+			{
+				"error": result["data"].get("error", ""),
+				"fix": result["data"].get("fix", ""),
+				"score": result["score"],
+			}
+			for result in retrieved
+			if isinstance(result.get("data"), dict)
+		]
 
-		# for result in search(message):
-		# 	ai_response.append({
-		# 		"error": result["data"]["error"],
-		# 		"fix": result["data"]["fix"],
-		# 		"score": result["score"]
-		# 	})
-
-		# Save User Message
-
-		(
-			supabase.table("messages").insert({
-				"chat_id": chat_id,
-				"role": "user",
-				"message": message
+		if chat_id is None:
+			chat_response = supabase.table("chat").insert({
+				"user_id": user["id"],
+				"title": message[:80],
 			}).execute()
-		)
-		# Save System Message
-		(
-			supabase.table("messages").insert({
-				"chat_id": chat_id,
-				"role": "system",
-				"message": json.dumps(ai_response)
-			}).execute()
-		)
-		print(ai_response)
+			if not chat_response.data:
+				raise HTTPException(status_code=500, detail="Unable to create conversation")
+			chat_id = chat_response.data[0]["id"]
+
+		supabase.table("messages").insert({
+			"chat_id": chat_id,
+			"role": "user",
+			"message": message,
+		}).execute()
+		supabase.table("messages").insert({
+			"chat_id": chat_id,
+			"role": "assistant",
+			"message": json.dumps(ai_response),
+		}).execute()
 		return {
 			"chat_id": chat_id,
 			"response": ai_response
 		}
+	except HTTPException:
+		raise
 	except Exception as e:
-		print(e)
 		raise HTTPException(
 			status_code=500,
-			detail=str(e)
+			detail="Unable to process message",
 		)

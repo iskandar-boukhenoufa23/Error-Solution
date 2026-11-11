@@ -1,3 +1,7 @@
 backend/.env
 ErrorSolution/.env
 backend/.env
+**/__pycache__/
+*.py[cod]
+ErrorSolution/node_modules/
+ErrorSolution/.expo/

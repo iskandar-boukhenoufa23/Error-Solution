@@ -1,5 +1,6 @@
 import httpx
 from jose import jwt
+from jose.exceptions import JWTError
 from fastapi import HTTPException, status
 import os
 from dotenv import load_dotenv
@@ -8,50 +9,50 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 CLERK_ISSUER = os.getenv("CLERK_ISSUER")
 CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
-
-print("CLERK_SECRET_KEY", CLERK_SECRET_KEY)
-print("CLERK_ISSUER", CLERK_ISSUER)
-print("CLERK_JWKS_URL", CLERK_JWKS_URL)
 
 jwks_cache = None
 
 
 async def get_jwks():
-	global jwks_cache
+    global jwks_cache
 
-	if jwks_cache:
-		return jwks_cache
+    if jwks_cache:
+        return jwks_cache
 
+    if not CLERK_JWKS_URL:
+        raise HTTPException(status_code=503, detail="Authentication is not configured")
 
-	async with httpx.AsyncClient() as client:
-		resp = await client.get(CLERK_JWKS_URL)
-		resp.raise_for_status()
-		jwks_cache = resp.json()
-		return jwks_cache
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(CLERK_JWKS_URL)
+            response.raise_for_status()
+            jwks_cache = response.json()
+            return jwks_cache
+    except (httpx.HTTPError, ValueError):
+        raise HTTPException(status_code=503, detail="Authentication provider is unavailable") from None
 
 
 
 async def verify_clerk_token(token: str):
     jwks = await get_jwks()
-
-    print("GET JWKS SUCESS", jwks)
-
     try:
+        token_header = jwt.get_unverified_header(token)
+        signing_key = next(
+            key for key in jwks.get("keys", [])
+            if key.get("kid") == token_header.get("kid")
+        )
         payload = jwt.decode(
             token,
-            jwks,
+            signing_key,
             algorithms=["RS256"],
             audience=None,
             issuer=CLERK_ISSUER
         )
-        print("PAYLOAD FROM security.py", payload)
         return payload
-    except Exception as e:
-        print("EXCEPTIOIN FROM SECURITY: ", e)
+    except (JWTError, StopIteration, TypeError, ValueError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid Clerk token"
-        )
+        ) from None

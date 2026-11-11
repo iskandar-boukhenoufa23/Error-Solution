@@ -1,13 +1,11 @@
 ## Error Solution AI 🚀
 
-
 AI-powered mobile application for developers that analyzes programming errors and returns similar fixes using semantic search and a simple RAG (Retrieval-Augmented Generation) system.
 
 The project consists of a React Native Android app built with Expo and a FastAPI backend that uses Sentence Transformers and FAISS for intelligent error similarity matching.
 
-
-
 ## ✨ Features
+
 - 📱 React Native Android application
 - ⚡ FastAPI backend API
 - 🔐 Authentication with Clerk
@@ -20,6 +18,7 @@ The project consists of a React Native Android app built with Expo and a FastAPI
 - ⚡ Fast semantic retrieval pipeline
 
 ## 🏗️ Project Structure
+
 ```
 error_solution/
 │
@@ -91,15 +90,17 @@ React Native Mobile App
 ```
 
 ## ⚙️ Tech Stack
+
 # Frontend
+
 - React Native
 - Expo
 - TypeScript
 - NativeWind
 - Axios
 
-
 # Backend
+
 - FastAPI
 - Python
 - Supabase
@@ -109,6 +110,7 @@ React Native Mobile App
 - Uvicorn
 
 # AI / RAG
+
 - Sentence Transformers
 - FAISS Vector Search
 - Semantic Similarity Search
@@ -129,19 +131,32 @@ CLERK_SECRET_KEY=your_clerk_secret
 CLERK_ISSUER=your_clerk_issuer
 CLERK_JWKS_URL=your_clerk_jwks_url
 ```
+
 ## 🚀 Frontend Setup
+
 Install Dependencies
 
 ```
 🚀 Frontend Setup
 Install Dependencies
 ```
+
 Start Expo Server
 
 ```
 npx expo start
 ```
+
+Configure the backend URL in `ErrorSolution/.env` before starting Expo:
+
+```
+EXPO_PUBLIC_API_URL=http://10.0.2.2:8000
+```
+
+The default above is for the Android emulator. For a physical device or iOS simulator, use the backend host address reachable from that device.
+
 ## ⚡ Backend Setup
+
 Create Virtual Environment
 Linux / macOS
 
@@ -150,6 +165,7 @@ python -m venv venv
 
 source venv/bin/activate
 ```
+
 Windows
 
 ```
@@ -157,6 +173,7 @@ python -m venv venv
 
 venv\Scripts\activate
 ```
+
 Install Dependencies
 
 ```
@@ -164,10 +181,13 @@ cd backend
 
 pip install -r requirements.txt
 ```
+
 Run FastAPI Server
+
 ```
 uvicorn main:app --reload
 ```
+
 Backend runs on:
 
 ```
@@ -177,9 +197,11 @@ http://127.0.0.1:8000
 ## 🧠 RAG Pipeline
 
 The project includes a notebook:
+
 ```
 ErrorSolution.ipynb
 ```
+
 This notebook is responsible for:
 
 Loading developer errors dataset
@@ -187,29 +209,34 @@ Generating embeddings using Sentence Transformers
 Creating FAISS vector index
 Saving vectors into:
 
-
 ```
 backend/app/data/error.index
 ```
+
 Saving metadata into:
+
 ```
 backend/app/data/metadata.json
 ```
 
+Both files must be present for message search. If they are missing, the API reports that the knowledge base is unavailable instead of returning placeholder results.
 
 ## 🔍 Semantic Search Flow
-- 1) User sends an error message from the mobile app
-- 2) FastAPI backend receives the error
-- 3) Backend converts the message into embeddings
-- 4) FAISS searches for similar errors
-- 5) Related fixes are retrieved from metadata
-- 6) Response is returned to the application
+
+- 1. User sends an error message from the mobile app
+- 2. FastAPI backend receives the error
+- 3. Backend converts the message into embeddings
+- 4. FAISS searches for similar errors
+- 5. Related fixes are retrieved from metadata
+- 6. Response is returned to the application
 
 ## 📡 API Endpoints
+
 Create Message
 POST /message/create
 
 Request:
+
 ```
 {
   "message": "TypeError: undefined is not an object",
@@ -218,6 +245,7 @@ Request:
 ```
 
 Response:
+
 ```
 {
   "chat_id": "chat_uuid",
@@ -242,6 +270,7 @@ GET /chat/{chat_id}
 Returns a specific chat session.
 
 ## 🧠 Embedding Example
+
 ```
 from sentence_transformers import SentenceTransformer
 
@@ -253,7 +282,9 @@ embedding = model.encode(
     "Module not found error in React Native"
 )
 ```
+
 ## 🔍 FAISS Search Example
+
 ```
 import faiss
 
@@ -264,7 +295,6 @@ index = faiss.read_index(
 D, I = index.search(query_embedding, k=5)
 ```
 
-
 ## 📚 Database
 
 The application uses Supabase for:
@@ -274,7 +304,9 @@ The application uses Supabase for:
 - Messages
 - Chat history
 - AI responses
+
 ## 🔮 Future Improvements
+
 - 🤖 LLM integration for advanced RAG
 - 🧠 Fine-tuned embedding models
 - 🌐 Multi-platform support

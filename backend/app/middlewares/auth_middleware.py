@@ -7,18 +7,15 @@ async def get_current_user(
     authorization: str = Header(...)
 ):
 
-	if not authorization.startswith("Bearer "):
+	scheme, _, token = authorization.partition(" ")
+	if scheme.lower() != "bearer" or not token.strip():
 		raise HTTPException(status_code=401, detail="Invalid auth header")
-
-	token = authorization.split(" ")[1]
-
-	print("TOKEN: ", token)
-
+	token = token.strip()
 	payload = await verify_clerk_token(token)
 
-	print("PAYLOAD: ", payload)
-
-	user_id = payload["sub"]
+	user_id = payload.get("sub")
+	if not user_id:
+		raise HTTPException(status_code=401, detail="Invalid Clerk token")
 	full_name = f"{payload.get('first_name', '')} {payload.get('last_name', '')}".strip()
 	email = payload.get("email")
 
@@ -32,16 +29,15 @@ async def get_current_user(
         .maybe_single() \
         .execute()
 
-	if response:
-		user = response.data
-
-	if not response:
+	user = response.data
+	if user is None:
 		create_response = supabase.table("users").insert({
             "id": user_id,
             "full_name": full_name,
             "email": email
         }).execute()
-
+		if not create_response.data:
+			raise HTTPException(status_code=500, detail="Unable to create user profile")
 		user = create_response.data[0]
 
 

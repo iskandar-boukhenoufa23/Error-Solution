@@ -1,9 +1,9 @@
-import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
-import { Slot, useRouter, useSegments } from 'expo-router';
-import { tokenCache } from '../utils/cache';
-import { useEffect } from 'react';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import '../global.css'
+import { ClerkProvider, ClerkLoaded, useAuth } from "@clerk/clerk-expo";
+import { Slot, useRouter, useSegments } from "expo-router";
+import { tokenCache } from "../utils/cache";
+import { useEffect } from "react";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import "../global.css";
 
 const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
 
@@ -15,14 +15,13 @@ function InitialLayout() {
   useEffect(() => {
     if (!isLoaded) return;
 
-    const inAuthGroup = segments[0] === '(auth)';
-    router.replace('/(drawer)');
+    const inAuthGroup = segments[0] === "(auth)";
     if (isSignedIn && inAuthGroup) {
-      router.replace('/(drawer)');
-    } else if (!isSignedIn) {
-      router.replace('/(auth)');
+      router.replace("/(drawer)");
+    } else if (!isSignedIn && !inAuthGroup) {
+      router.replace("/(auth)");
     }
-  }, [isSignedIn, isLoaded]);
+  }, [isSignedIn, isLoaded, router, segments]);
 
   return (
     <SafeAreaView style={{ flex: 1 }}>
