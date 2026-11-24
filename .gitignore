@@ -5,3 +5,5 @@ backend/.env
 *.py[cod]
 ErrorSolution/node_modules/
 ErrorSolution/.expo/
+backend/app/data/metadata.json
+backend/app/data/error.index
